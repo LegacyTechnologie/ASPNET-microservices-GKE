@@ -14,16 +14,16 @@ pipeline {
             }
           }    
         }
-        stage('Build and push image with Container Builder') {
-          steps {
-            sh 'gcloud builds submit -t ${IMAGE_TAG} .'
-          }
-        }
-        stage('Create GKE cluster') {
-          steps {
-            sh 'gcloud container clusters create ${APP_NAME} --addons=HorizontalPodAutoscaling,HttpLoadBalancing,CloudRun --machine-type=n1-standard-2 --zone=us-central1-f --enable-stackdriver-kubernetes'
-          }
-        }
+        // stage('Build and push image with Container Builder') {
+        //   steps {
+        //     sh 'gcloud builds submit -t ${IMAGE_TAG} .'
+        //   }
+        // }
+        // stage('Create GKE cluster') {
+        //   steps {
+        //     sh 'gcloud container clusters create ${APP_NAME} --addons=HorizontalPodAutoscaling,HttpLoadBalancing,CloudRun --machine-type=n1-standard-2 --zone=us-central1-f --enable-stackdriver-kubernetes'
+        //   }
+        // }
         stage('Deploy image to GKE cluster using cloud run') {
           steps {
             sh 'gcloud run deploy ${APP_NAME} --cluster-location us-central1-f --image ${IMAGE_TAG} --platform gke --connectivity external --cluster ${APP_NAME}'
