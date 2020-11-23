@@ -1,0 +1,20 @@
+steps:
+# Build the container image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/myproject-ahsan-123/my-aspnet-microservices', '.']
+# Push the container image to Container Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/myproject-ahsan-123/my-aspnet-microservices']
+# Deploy container image to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args: ['beta', 'container', 'clusters', 'create', 'my-aspdotnet-microservices', '--addons=HorizontalPodAutoscaling,HttpLoadBalancing,Istio,CloudRun', '--machine-type=n1-standard-2', '--cluster-version=latest', '--enable-stackdriver-kubernetes', '--enable-ip-alias', '--scopes', 'cloud-platform']
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args: ['beta', 'run', 'deploy', 'my-aspdotnet-microservices', '--connectivity', 'external', '--image', 'gcr.io/myproject-ahsan-123/my-aspnet-microservices', '--region', 'us-central1', '--platform', 'gke', '--cluster-location', 'us-central1-f', '--cluster', 'aspnet-microservices-gke-crun']
+- name: 'gcr.io/cloud-builders/kubectl'
+  args: ['apply', '-f', 'service.yaml']
+- name: 'gcr.io/cloud-builders/kubectl'
+  args: ['-n', 'gke-system', 'get', 'svc', 'istio-ingressgateway', '-o', 'jsonpath="{.status.loadBalancer.ingress[0].ip}"']
+images:
+- gcr.io/myproject-ahsan-123/my-aspnet-microservices

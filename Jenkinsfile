@@ -14,25 +14,35 @@ pipeline {
             }
           }    
         }
-        // stage('Build and push image with Container Builder') {
-        //   steps {
-        //     sh 'gcloud builds submit -t ${IMAGE_TAG} .'
-        //   }
-        // }
-        // stage('Create GKE cluster') {
-        //   steps {
-        //     sh 'gcloud container clusters create ${APP_NAME} --addons=HorizontalPodAutoscaling,HttpLoadBalancing,CloudRun --machine-type=n1-standard-2 --zone=us-central1-f --enable-stackdriver-kubernetes'
-        //   }
-        // }
-        stage('Deploy image to GKE cluster using cloud run') {
+        stage('Build and push image with Container Builder') {
           steps {
-            sh 'gcloud run deploy ${APP_NAME} --cluster-location us-central1-f --image ${IMAGE_TAG} --platform gke --connectivity external --cluster ${APP_NAME}'
+            sh 'gcloud builds submit -t ${IMAGE_TAG} .'
           }
         }
-        // stage('To call API') {
-        //   steps {
-        //     sh 'curl -H "Host: ${APP_NAME}.default.example.com" http://kubectl -n gke-system get svc istio-ingress -o jsonpath={.status.loadBalancer.ingress[0].ip}'
-        //   }
-        // }
+        stage('Create GKE cluster') {
+          steps {
+            sh 'gcloud beta container clusters create ${APP_NAME} --addons=HorizontalPodAutoscaling,HttpLoadBalancing,Istio,CloudRun --machine-type=n1-standard-2 --cluster-version=latest --enable-stackdriver-kubernetes --enable-ip-alias --scopes cloud-platform'
+          }
+        }
+        stage('Get cluster credentials') {
+          steps {
+            sh 'gcloud container clusters get-credentials ${APP_NAME}'
+          }
+        }
+        stage('Deploy image to GKE cluster using cloud run') {
+          steps {
+            sh 'gcloud beta run deploy ${APP_NAME} --cluster-location us-central1-f --image ${IMAGE_TAG} --platform gke --connectivity external --cluster ${APP_NAME}'
+          }
+        }
+        stage('Deploy services to expose') {
+          steps {
+            sh 'kubectl apply -f service.yaml'
+          }
+        }
+        stage('IP or Endpoints') {
+          steps {
+            sh 'kubectl -n gke-system get svc istio-ingressgateway -o jsonpath="{.status.loadBalancer.ingress[0].ip}"'
+          }
+        }
     }
 }
